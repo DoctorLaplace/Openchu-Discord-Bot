@@ -3,7 +3,6 @@ import random
 
 
 
-
 class MyClient(discord.Client):
     global count
 
@@ -26,8 +25,11 @@ class MyClient(discord.Client):
 
 
 
-
-
+botkey = None
+# Place the path to your external botkey text file. This makes sure that Git does not commit your botkey to the open internet!
+with open('C:/Users/silve/Desktop/Discord Bots/Openchu/Openchu_Key.txt', 'r') as file:
+    botkey = file.read().replace('\n', '')
+    print(botkey)
 
 client = MyClient()
-client.run('INSERT BOT KEY')
+client.run(botkey)
