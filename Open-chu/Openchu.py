@@ -1,6 +1,7 @@
 import discord
 import random
-
+import asyncio
+import time
 
 
 class dataSocket():
@@ -41,26 +42,28 @@ class BattleArena():
 
 class Pokemon():
 
-    def __init__(self, strength = 0, dexterity = 0, constitution = 0, intelligence = 0, wisdom = 0, charisma = 0, hitpoints = 0, name = "UNDEFINED POKEMON", picture = None):
-        self.strength = 10
-        self.dexterity = 10
-        self.constitution = 10
-        self.intelligence = 10
-        self.wisdom = 10
-        self.charisma = 10
+    def __init__(self, strength = 100, dexterity = 0, constitution = 0, intelligence = 0, wisdom = 0, charisma = 0, hitpoints = 0, name = "UNDEFINED POKEMON", picture = None):
+        self.strength = strength
+        self.dexterity = dexterity
+        self.constitution = constitution
+        self.intelligence = intelligence
+        self.wisdom = wisdom
+        self.charisma = charisma
 
-        self.hitpoints = 100
-        self.name = "UNDEFINED POKEMON"
-        self.picture = None
+        self.hitpoints = hitpoints
+        self.name = name
+        self.picture = picture
 
-    def attack_tackle(self, target, damagePassBack = None):
+    def attack_tackle(self, target):
         target.hitpoints -= self.strength*2
-        damagePassBack = self.strength*2
+        return self.strength*2
 
     def getName(self):
         return self.name
     def getHitpoints(self):
         return self.hitpoints
+    def takeDamage(self, damage):
+        self.hitpoints -= damage
 
 
 
@@ -69,6 +72,8 @@ class MyClient(discord.Client):
     global count
     checkPlayer1 = False
     checkPlayer2 = False
+    p1Set = False
+    p2Set = False
     battleZone = BattleArena(None, None, None, None)
     battleActive = False
     battleChannel = None
@@ -79,15 +84,14 @@ class MyClient(discord.Client):
     player2DataSocket = dataSocket(None)
 
 
-    pok1 = Pokemon()
-    pok1.name = "Shrek"
-    battleZone.pokemon1 = pok1
-    pok2 = Pokemon()
-    pok2.name = "Darmander"
-    battleZone.pokemon1 = pok2
+    pok1 = Pokemon(10, 10, 10, 10, 10, 10, 100, "Shrek", None)
+    pok2 = Pokemon(10, 10, 10, 10, 10, 10, 100, "Darmander", None)
+    battleZone.setPokemon(pok1, pok2)
+
+    spoofMode = False
 
     async def displayPokemonStatus(self, channel, pokemon):
-        await channel.send(pokemon.getName() + "stats:\n" + str(pokemon.getHitpoints()))
+        await channel.send(pokemon.getName() + " stats:\n" + str(pokemon.getHitpoints()))
 
 
     async def on_ready(self):
@@ -123,9 +127,26 @@ class MyClient(discord.Client):
 
     async def on_message(self, message):
         global count
+        
 
-        if message.author == self.user:
+        if message.author == self.user and self.spoofMode == False:
             return
+
+        if message.content == 'Openchu spoof':
+            if self.spoofMode == False:
+                self.spoofMode = True
+                await message.channel.send("''Spoofmode On''")
+            else:
+                self.spoofMode = False
+                await message.channel.send("''Spoofmode Off''")
+
+        if message.content == 'o1' and self.spoofMode == True:
+            await message.channel.send("I am player 2")
+        if message.content == 'o2' and self.spoofMode == True:
+            await message.channel.send("Darmander use glock!")
+
+
+
 
         if message.content == 'Hello Openchu!':
             await message.channel.send("Pika!")
@@ -137,35 +158,45 @@ class MyClient(discord.Client):
             self.checkPlayer1 = True
             self.checkPlayer2 = True
             self.battleChannel = message.channel
+            await self.lockingParticipants(message.channel)
         
         if message.content == 'I am player 1' and self.checkPlayer1 == True:
             checkPlayer1 = False
             self.battleZone.setPlayer1(message.author)
+            self.p1Set = True
             await message.channel.send("Player one locked in as " + message.author.name + "!...")
+            print(message.author)
 
         if message.content == 'I am player 2' and self.checkPlayer2 == True:
             checkPlayer2 = False
             self.battleZone.setPlayer2(message.author)
+            self.p2Set = True
             await message.channel.send("Player two locked in as " + message.author.name + "!...")
+            print(message.author)
 
 
-        if message.author == self.battleZone.player1 and self.battleZone.player1 != None:
-            self.player1Socket = message.content
-            self.player1DataSocket.setData(message.content)
-            await message.channel.send("Player one socket is now: " + message.content)
+        if self.battleZone.player1 != None:
+            if message.author.id == self.battleZone.player1.id:
+                self.player1DataSocket.setData(message.content)
+                print("Player one socket is now: " + message.content)
+                #print(str(message.author.id) + " ==? " + str(self.battleZone.player1.id))
+                #await message.channel.send("Player one socket is now: " + message.content)
 
 
-        if message.author == self.battleZone.player2 and self.battleZone.player2 != None:
-            self.player2Socket = message.content
-            self.player2DataSocket.setData(message.content)
-            await message.channel.send("Player two socket is now: " + message.content)
+        if self.battleZone.player2 != None:
+            if message.author.id == self.battleZone.player2.id:
+                self.player2DataSocket.setData(message.content)
+                print("Player two socket is now: " + message.content)
+                #await message.channel.send("Player two socket is now: " + message.content)
+
 
 
 
         if message.content == 'Battle Cycle':
             self.battleChannel = message.channel
             self.battleActive = True
-            await self.battleThinkCycle()
+            await lockingParticipants()
+            #await self.battleThinkCycle()
             print("Program is free now.")
 
         if message.content == 'End Battle Cycle':
@@ -173,15 +204,34 @@ class MyClient(discord.Client):
 
 
 
-
-                     
+    async def lockingParticipants(self, messageChannel):
+        lookingForPlayers = True
+        while lookingForPlayers == True:
+            print("Searching for players...")
+            await messageChannel.send("Searching for players...")
+            await asyncio.sleep(1)
+            if self.p1Set == True and self.p2Set == True:
+                lookingForPlayers = False
+                self.battleChannel = messageChannel
+                self.battleActive = True
+                await self.battleThinkCycle()
+                print("Program is free now.")
+        print("No longer looking for players...")
+        await messageChannel.send("No longer looking for players...")
             
+
+
+
+
     async def battleThinkCycle(self):
         count = 0
-        await self.battleChannel.send("A battle is about to begin between " + self.battleZone.player1.name + " and " + self.battleZone.player1.name + "!...")
+        print(self.battleZone.pokemon2.name)
+        await self.battleChannel.send("A battle is about to begin between " + self.battleZone.player1.name + " and " + self.battleZone.player2.name + "!...")
         while self.battleActive == True:
             count += 1
-            await self.battleChannel.send("Battle heartbeat " + str(count) + " - It is player" + str(self.playerTurnNum) + "'s turn")
+            #await self.battleChannel.send("Battle heartbeat " + str(count) + " - It is player" + str(self.playerTurnNum) + "'s turn")
+            await asyncio.sleep(2)
+
 
             if self.playerTurnNum == 1:
                 turnCount = 0
@@ -189,10 +239,14 @@ class MyClient(discord.Client):
                 await self.battleChannel.send(self.battleZone.player1.name + " it is your turn!...")
                 while takenTurn == False and self.battleActive == True:
                     turnCount += 1
-                    await self.battleChannel.send("Primed")
+                    #await self.battleChannel.send("Primed")
+                    await asyncio.sleep(2)
                     if self.player1DataSocket.getData() == "Shrek use hyperbeam!":
                         await self.battleChannel.send("***Shrek emits a beam of pure destruction!...***")
                         await self.displayPokemonStatus(self.battleChannel,self.battleZone.pokemon1)
+                        damage = 0
+                        damage = self.battleZone.pokemon1.attack_tackle(self.battleZone.pokemon2)
+                        await self.battleChannel.send("***" + str(self.battleZone.pokemon2.name) + " takes " + str(damage) + " damage!...***")
                         self.playerTurnNum = 2
                         takenTurn = True
                         self.player1DataSocket.setData(None)
@@ -204,12 +258,18 @@ class MyClient(discord.Client):
                 await self.battleChannel.send(self.battleZone.player2.name + " it is your turn!...")
                 while takenTurn == False and self.battleActive == True:
                     turnCount += 1
-                    await self.battleChannel.send("Primed")
+                    #await self.battleChannel.send("Primed")
+                    await asyncio.sleep(2)
                     if self.player2DataSocket.getData() == "Darmander use glock!":
                         await self.battleChannel.send("***Darmander shoots his opponent!...***")
+                        await self.displayPokemonStatus(self.battleChannel,self.battleZone.pokemon1)
+                        damage = 0
+                        damage = self.battleZone.pokemon2.attack_tackle(self.battleZone.pokemon1)
+                        await self.battleChannel.send("***" + str(self.battleZone.pokemon1.name) + " takes " + str(damage) + " damage!...***")
                         self.playerTurnNum = 1
                         takenTurn = True
                         self.player1DataSocket.setData(None)
+
 
 
 
