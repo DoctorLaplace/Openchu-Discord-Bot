@@ -3,14 +3,27 @@ import random
 
 
 
+class dataSocket():
+    def __init__(self, data):
+        self.data = None
+
+    def setData(self, input):
+        self.data = input
+
+    def getData(self):
+        return self.data
+
+
+
+
 class BattleArena():
 
     def __init__(self, player1, player2, pokemon1, pokemon2):
             self.player1 = None
             self.player2 = None
 
-            self.patremon1 = None
-            self.patremon2 = None
+            self.pokemon1 = None
+            self.pokemon2 = None
 
     def setPlayer1(self, p):
         self.player1 = p
@@ -27,22 +40,27 @@ class BattleArena():
 
 
 class Pokemon():
-    strength = 10
-    dexterity = 10
-    constitution = 10
-    intelligence = 10
-    wisdom = 10
-    charisma = 10
 
-    hitpoints = 100
+    def __init__(self, strength = 0, dexterity = 0, constitution = 0, intelligence = 0, wisdom = 0, charisma = 0, hitpoints = 0, name = "UNDEFINED POKEMON", picture = None):
+        self.strength = 10
+        self.dexterity = 10
+        self.constitution = 10
+        self.intelligence = 10
+        self.wisdom = 10
+        self.charisma = 10
 
-    name = "DEFAULT PATREMON"
-    picture = None
+        self.hitpoints = 100
+        self.name = "UNDEFINED POKEMON"
+        self.picture = None
 
     def attack_tackle(self, target, damagePassBack = None):
         target.hitpoints -= self.strength*2
         damagePassBack = self.strength*2
 
+    def getName(self):
+        return self.name
+    def getHitpoints(self):
+        return self.hitpoints
 
 
 
@@ -57,8 +75,19 @@ class MyClient(discord.Client):
 
     playerTurnNum = 1
 
-    player1Socket = None
-    player2Socket = None
+    player1DataSocket = dataSocket(None)
+    player2DataSocket = dataSocket(None)
+
+
+    pok1 = Pokemon()
+    pok1.name = "Shrek"
+    battleZone.pokemon1 = pok1
+    pok2 = Pokemon()
+    pok2.name = "Darmander"
+    battleZone.pokemon1 = pok2
+
+    async def displayPokemonStatus(self, channel, pokemon):
+        await channel.send(pokemon.getName() + "stats:\n" + str(pokemon.getHitpoints()))
 
 
     async def on_ready(self):
@@ -122,11 +151,13 @@ class MyClient(discord.Client):
 
         if message.author == self.battleZone.player1 and self.battleZone.player1 != None:
             self.player1Socket = message.content
+            self.player1DataSocket.setData(message.content)
             await message.channel.send("Player one socket is now: " + message.content)
 
 
         if message.author == self.battleZone.player2 and self.battleZone.player2 != None:
             self.player2Socket = message.content
+            self.player2DataSocket.setData(message.content)
             await message.channel.send("Player two socket is now: " + message.content)
 
 
@@ -150,34 +181,37 @@ class MyClient(discord.Client):
         await self.battleChannel.send("A battle is about to begin between " + self.battleZone.player1.name + " and " + self.battleZone.player1.name + "!...")
         while self.battleActive == True:
             count += 1
-            #await self.battleChannel.send("Battle heartbeat " + str(count) + " - It is player" + str(self.playerTurnNum) + "'s turn")
+            await self.battleChannel.send("Battle heartbeat " + str(count) + " - It is player" + str(self.playerTurnNum) + "'s turn")
 
             if self.playerTurnNum == 1:
                 turnCount = 0
                 takenTurn = False
                 await self.battleChannel.send(self.battleZone.player1.name + " it is your turn!...")
-                while takenTurn == False:
+                while takenTurn == False and self.battleActive == True:
                     turnCount += 1
-                    #await self.battleChannel.send("Turn heartbeat " + str(turnCount) + " - It is player" + str(self.playerTurnNum) + "'s turn")
-                    if self.player1Socket == "Shrek use hyperbeam!":
-                        await self.battleChannel.send(self.battleZone.player1.name + "Shrek emits a beam of pure destruction!...")
+                    await self.battleChannel.send("Primed")
+                    if self.player1DataSocket.getData() == "Shrek use hyperbeam!":
+                        await self.battleChannel.send("***Shrek emits a beam of pure destruction!...***")
+                        await self.displayPokemonStatus(self.battleChannel,self.battleZone.pokemon1)
                         self.playerTurnNum = 2
                         takenTurn = True
-                        self.player1Socket = None
+                        self.player1DataSocket.setData(None)
 
 
             if self.playerTurnNum == 2:
                 turnCount = 0
                 takenTurn = False
                 await self.battleChannel.send(self.battleZone.player2.name + " it is your turn!...")
-                while takenTurn == False:
+                while takenTurn == False and self.battleActive == True:
                     turnCount += 1
-                    #await self.battleChannel.send("Turn heartbeat " + str(turnCount) + " - It is player" + str(self.playerTurnNum) + "'s turn")
-                    if self.player2Socket == "Charmander use brick!":
-                        await self.battleChannel.send("Charmander bricks his opponent!...")
+                    await self.battleChannel.send("Primed")
+                    if self.player2DataSocket.getData() == "Darmander use glock!":
+                        await self.battleChannel.send("***Darmander shoots his opponent!...***")
                         self.playerTurnNum = 1
                         takenTurn = True
-                        self.player2Socket = None
+                        self.player1DataSocket.setData(None)
+
+
 
 
 
@@ -187,7 +221,6 @@ class MyClient(discord.Client):
 
 
         
-
 
 
 
