@@ -42,7 +42,10 @@ class BattleArena():
 
 class Pokemon():
 
-    def __init__(self, strength = 100, dexterity = 0, constitution = 0, intelligence = 0, wisdom = 0, charisma = 0, hitpoints = 0, name = "UNDEFINED POKEMON", picture = None):
+    
+
+    def __init__(self, strength = 100, dexterity = 0, constitution = 0, intelligence = 0, wisdom = 0, charisma = 0, hitpoints = 100, maxHitpoints = 100, 
+                 name = "UNDEFINED POKEMON", picture = None, moveList = []):
         self.strength = strength
         self.dexterity = dexterity
         self.constitution = constitution
@@ -50,20 +53,62 @@ class Pokemon():
         self.wisdom = wisdom
         self.charisma = charisma
 
+        self.maxHitpoints = maxHitpoints
         self.hitpoints = hitpoints
         self.name = name
         self.picture = picture
 
-    def attack_tackle(self, target):
+        self.moveList = moveList
+
+
+
+    def attack(self, target, movSignature):
+        damage = 0
+        if movSignature == 0:
+            damage = self.attack_bodySlam(target)
+        if movSignature == 1:
+            damage = self.attack_doritoBurst(target)
+        if movSignature == 2:
+            damage = self.attack_dab(target)
+        if target.hitpoints <= 0:
+            target.hitpoints = 0
+        return damage
+
+
+    def attack_bodySlam(self, target):
         target.hitpoints -= self.strength*2
         return self.strength*2
+
+    def attack_doritoBurst(self, target):
+        target.hitpoints -= self.dexterity*2
+        return self.dexterity*2
+
+    def attack_dab(self, target):
+        target.hitpoints -= self.charisma*999
+        return self.charisma*999
+
+
 
     def getName(self):
         return self.name
     def getHitpoints(self):
         return self.hitpoints
+    def getMaxHitpoints(self):
+        return self.maxHitpoints
     def takeDamage(self, damage):
         self.hitpoints -= damage
+
+
+    def getMoveList(self):
+        return self.moveList
+
+    def getMoveListStr(self):
+        string = ""
+        for i in range(len(self.moveList)):
+            string += self.moveList[i] + " [" + str(i) + "]\n"
+        return string
+
+
 
 
 
@@ -84,14 +129,35 @@ class MyClient(discord.Client):
     player2DataSocket = dataSocket(None)
 
 
-    pok1 = Pokemon(10, 10, 10, 10, 10, 10, 100, "Shrek", None)
-    pok2 = Pokemon(10, 10, 10, 10, 10, 10, 100, "Darmander", None)
+    pok1 = Pokemon(10, 10, 10, 10, 10, 10, 100, 100, "Shrek", None)
+    pok1.moveList = ['Body Slam', 'Dorito Burst', 'Dab']
+    pok2 = Pokemon(10, 10, 10, 10, 10, 10, 100, 100, "Darmander", None)
+    pok2.moveList = ['Flamethrower', 'Illegal Firework', 'Overly Excited High-Five']
+
+
     battleZone.setPokemon(pok1, pok2)
 
     spoofMode = False
 
     async def displayPokemonStatus(self, channel, pokemon):
-        await channel.send(pokemon.getName() + " stats:\n" + str(pokemon.getHitpoints()))
+        hpBar = "█"
+        backBar = "░"
+        healthStr = ""
+        barStr = ""
+
+        pkHit = pokemon.getHitpoints()
+        pkHitMax = pokemon.getMaxHitpoints()
+
+        healthTicks =  round((pkHit / pkHitMax), 2)*50
+        barTicks = 50 - healthTicks
+
+        for i in range(int(healthTicks)):
+            healthStr += hpBar
+        for i in range(int(barTicks)):
+            barStr += backBar
+
+        await channel.send(">>> " + pokemon.getName() + ": " + healthStr + barStr +
+                           "\nMoves:\n" + str(pokemon.getMoveListStr()) + "")
 
 
     async def on_ready(self):
@@ -135,10 +201,10 @@ class MyClient(discord.Client):
         if message.content == 'Openchu spoof':
             if self.spoofMode == False:
                 self.spoofMode = True
-                await message.channel.send("''Spoofmode On''")
+                await message.channel.send("```Spoofmode On```")
             else:
                 self.spoofMode = False
-                await message.channel.send("''Spoofmode Off''")
+                await message.channel.send("```Spoofmode Off```")
 
         if message.content == 'o1' and self.spoofMode == True:
             await message.channel.send("I am player 2")
@@ -153,21 +219,21 @@ class MyClient(discord.Client):
 
         battlemode = True
         # pikamood
-        if message.content == 'Initiate Battle' and battlemode == True:
+        if (message.content == 'Initiate Battle' or message.content == 'i1') and battlemode == True:
             await message.channel.send("Players! Are you ready?!")
             self.checkPlayer1 = True
             self.checkPlayer2 = True
             self.battleChannel = message.channel
             await self.lockingParticipants(message.channel)
         
-        if message.content == 'I am player 1' and self.checkPlayer1 == True:
+        if message.content == 'p1' and self.checkPlayer1 == True:
             checkPlayer1 = False
             self.battleZone.setPlayer1(message.author)
             self.p1Set = True
             await message.channel.send("Player one locked in as " + message.author.name + "!...")
             print(message.author)
 
-        if message.content == 'I am player 2' and self.checkPlayer2 == True:
+        if message.content == 'p2' and self.checkPlayer2 == True:
             checkPlayer2 = False
             self.battleZone.setPlayer2(message.author)
             self.p2Set = True
@@ -237,38 +303,44 @@ class MyClient(discord.Client):
                 turnCount = 0
                 takenTurn = False
                 await self.battleChannel.send(self.battleZone.player1.name + " it is your turn!...")
+                await self.displayPokemonStatus(self.battleChannel,self.battleZone.pokemon1)
                 while takenTurn == False and self.battleActive == True:
                     turnCount += 1
                     #await self.battleChannel.send("Primed")
                     await asyncio.sleep(2)
-                    if self.player1DataSocket.getData() == "Shrek use hyperbeam!":
-                        await self.battleChannel.send("***Shrek emits a beam of pure destruction!...***")
-                        await self.displayPokemonStatus(self.battleChannel,self.battleZone.pokemon1)
+                    if self.player1DataSocket.getData() == "a[2]":
+                        await self.battleChannel.send("***Shrek uses Dab!!...***")                
                         damage = 0
-                        damage = self.battleZone.pokemon1.attack_tackle(self.battleZone.pokemon2)
+                        description = ""
+                        damage = self.battleZone.pokemon1.attack(self.battleZone.pokemon2, 2)
                         await self.battleChannel.send("***" + str(self.battleZone.pokemon2.name) + " takes " + str(damage) + " damage!...***")
                         self.playerTurnNum = 2
                         takenTurn = True
                         self.player1DataSocket.setData(None)
 
 
+
             if self.playerTurnNum == 2:
                 turnCount = 0
                 takenTurn = False
                 await self.battleChannel.send(self.battleZone.player2.name + " it is your turn!...")
+                await self.displayPokemonStatus(self.battleChannel,self.battleZone.pokemon2)
                 while takenTurn == False and self.battleActive == True:
                     turnCount += 1
                     #await self.battleChannel.send("Primed")
                     await asyncio.sleep(2)
-                    if self.player2DataSocket.getData() == "Darmander use glock!":
-                        await self.battleChannel.send("***Darmander shoots his opponent!...***")
-                        await self.displayPokemonStatus(self.battleChannel,self.battleZone.pokemon1)
+                    if self.player1DataSocket.getData() == "a[0]":
+                        await self.battleChannel.send("***Darmander uses ???...***")                
                         damage = 0
-                        damage = self.battleZone.pokemon2.attack_tackle(self.battleZone.pokemon1)
+                        description = ""
+                        damage = self.battleZone.pokemon2.attack(self.battleZone.pokemon1, 0)
                         await self.battleChannel.send("***" + str(self.battleZone.pokemon1.name) + " takes " + str(damage) + " damage!...***")
                         self.playerTurnNum = 1
                         takenTurn = True
-                        self.player1DataSocket.setData(None)
+                        self.player2DataSocket.setData(None)
+
+
+   
 
 
 
