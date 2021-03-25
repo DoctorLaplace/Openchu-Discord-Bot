@@ -17,6 +17,29 @@ class dataSocket():
 
 
 
+
+
+class ability():
+    def __init__(self, name = "UNDEFINED_NAME", type = 0, description = "The Pokemon uses a move!"):
+        self.name = name
+        self.type = type
+        self.description = description
+
+
+    def dealDamage(self, pokemonAttacking):
+        return pokemonAttacking.strength*3
+
+
+
+class abilitySet():
+    def __init__(self):
+        self.abilityGroup = []
+
+
+
+
+
+
 class BattleArena():
 
     def __init__(self, player1, player2, pokemon1, pokemon2):
@@ -58,8 +81,8 @@ class Pokemon():
         self.name = name
         self.picture = picture
 
-        self.moveList = moveList
-
+        self.moves = dataSocket([])
+        self.abilities = abilitySet()
 
 
     def attack(self, target, movSignature):
@@ -73,6 +96,13 @@ class Pokemon():
         if target.hitpoints <= 0:
             target.hitpoints = 0
         return damage
+
+
+
+
+
+
+
 
 
     def attack_bodySlam(self, target):
@@ -100,12 +130,12 @@ class Pokemon():
 
 
     def getMoveList(self):
-        return self.moveList
+        return self.abilities.abilityGroup
 
     def getMoveListStr(self):
         string = ""
-        for i in range(len(self.moveList)):
-            string += self.moveList[i] + " [" + str(i) + "]\n"
+        for i in range(len(self.abilities.abilityGroup)):
+            string += self.abilities.abilityGroup[i].name + " [" + str(i) + "]\n"
         return string
 
 
@@ -129,10 +159,25 @@ class MyClient(discord.Client):
     player2DataSocket = dataSocket(None)
 
 
+    rkick = ability("Round House Kick", 0, "The Pokemon used a round house kick!")
+    axekick = ability("Axe Kick", 0, "The Pokemon used a axe kick!")
+    shrekAbilities = abilitySet()
+    shrekAbilities.abilityGroup = [rkick, axekick]
     pok1 = Pokemon(10, 10, 10, 10, 10, 10, 100, 100, "Shrek", None)
-    pok1.moveList = ['Body Slam', 'Dorito Burst', 'Dab']
+    pok1.abilities = shrekAbilities
+
+
+    fThrower = ability("Flamethrower", 0, "The Pokemon unleashes a blast of fire!")
+    iFirework = ability("Illegal Firework", 0, "The Pokemon recklessly lights an illegal firework aimed at teh opponent!")
+    hFive = ability("Overly Excited High-Five", 0, "The Pokemon give the opponent a high five at mach 3!")
+    darAbilities = abilitySet()
+    darAbilities.abilityGroup = [fThrower, iFirework, hFive]
     pok2 = Pokemon(10, 10, 10, 10, 10, 10, 100, 100, "Darmander", None)
-    pok2.moveList = ['Flamethrower', 'Illegal Firework', 'Overly Excited High-Five']
+    pok2.abilities = darAbilities
+
+
+    #pok2 = Pokemon(10, 10, 10, 10, 10, 10, 100, 100, "Darmander", None)
+    #pok2.moves.data = ['Flamethrower', 'Illegal Firework', 'Overly Excited High-Five']
 
 
     battleZone.setPokemon(pok1, pok2)
@@ -308,11 +353,12 @@ class MyClient(discord.Client):
                     turnCount += 1
                     #await self.battleChannel.send("Primed")
                     await asyncio.sleep(2)
-                    if self.player1DataSocket.getData() == "a[2]":
-                        await self.battleChannel.send("***Shrek uses Dab!!...***")                
+                    if self.player1DataSocket.getData() == "a[0]":
+                        await self.battleChannel.send(self.battleZone.pokemon1.abilities.abilityGroup[0].description)                
                         damage = 0
                         description = ""
-                        damage = self.battleZone.pokemon1.attack(self.battleZone.pokemon2, 2)
+                        damage = self.battleZone.pokemon1.abilities.abilityGroup[0].dealDamage(self.battleZone.pokemon1)
+                        self.battleZone.pokemon2.hitpoints -= damage
                         await self.battleChannel.send("***" + str(self.battleZone.pokemon2.name) + " takes " + str(damage) + " damage!...***")
                         self.playerTurnNum = 2
                         takenTurn = True
