@@ -161,15 +161,16 @@ class MyClient(discord.Client):
 
     rkick = ability("Round House Kick", 0, "The Pokemon used a round house kick!")
     axekick = ability("Axe Kick", 0, "The Pokemon used a axe kick!")
+    dab = ability("Dab", 0, "The Pokemon drops mad disrepect on its opponent!")
     shrekAbilities = abilitySet()
-    shrekAbilities.abilityGroup = [rkick, axekick]
+    shrekAbilities.abilityGroup = [rkick, axekick, dab]
     pok1 = Pokemon(10, 10, 10, 10, 10, 10, 100, 100, "Shrek", None)
     pok1.abilities = shrekAbilities
 
 
     fThrower = ability("Flamethrower", 0, "The Pokemon unleashes a blast of fire!")
-    iFirework = ability("Illegal Firework", 0, "The Pokemon recklessly lights an illegal firework aimed at teh opponent!")
-    hFive = ability("Overly Excited High-Five", 0, "The Pokemon give the opponent a high five at mach 3!")
+    iFirework = ability("Illegal Firework", 0, "The Pokemon recklessly lights an illegal firework aimed at the opponent!")
+    hFive = ability("Overly Excited High-Five", 0, "The Pokemon gives the opponent a high five at mach 3!")
     darAbilities = abilitySet()
     darAbilities.abilityGroup = [fThrower, iFirework, hFive]
     pok2 = Pokemon(10, 10, 10, 10, 10, 10, 100, 100, "Darmander", None)
@@ -189,6 +190,13 @@ class MyClient(discord.Client):
         backBar = "░"
         healthStr = ""
         barStr = ""
+
+        if pokemon.hitpoints < 0:
+            pokemon.hitpoints = 0
+        if pokemon.hitpoints > pokemon.maxHitpoints:
+            pokemon.hitpoints = maxHitpoints
+
+
 
         pkHit = pokemon.getHitpoints()
         pkHitMax = pokemon.getMaxHitpoints()
@@ -353,16 +361,19 @@ class MyClient(discord.Client):
                     turnCount += 1
                     #await self.battleChannel.send("Primed")
                     await asyncio.sleep(2)
-                    if self.player1DataSocket.getData() == "a[0]":
-                        await self.battleChannel.send(self.battleZone.pokemon1.abilities.abilityGroup[0].description)                
-                        damage = 0
-                        description = ""
-                        damage = self.battleZone.pokemon1.abilities.abilityGroup[0].dealDamage(self.battleZone.pokemon1)
-                        self.battleZone.pokemon2.hitpoints -= damage
-                        await self.battleChannel.send("***" + str(self.battleZone.pokemon2.name) + " takes " + str(damage) + " damage!...***")
-                        self.playerTurnNum = 2
-                        takenTurn = True
-                        self.player1DataSocket.setData(None)
+                    if self.player1DataSocket.getData() != None:
+                        if len(self.player1DataSocket.getData()) > 3 and self.player1DataSocket.getData()[0] == 'a':
+                            commandNum = self.player1DataSocket.getData()[2]
+                            await self.battleChannel.send(self.battleZone.pokemon1.abilities.abilityGroup[int(commandNum)].description)                
+                            damage = 0
+                            description = ""
+                            damage = self.battleZone.pokemon1.abilities.abilityGroup[0].dealDamage(self.battleZone.pokemon1)
+                            self.battleZone.pokemon2.hitpoints -= damage
+                            await self.battleChannel.send("***" + str(self.battleZone.pokemon2.name) + " takes " + str(damage) + " damage!...***")
+                            self.playerTurnNum = 2
+                            takenTurn = True
+                            self.player1DataSocket.setData(None)
+                            self.player2DataSocket.setData(None)
 
 
 
@@ -375,15 +386,19 @@ class MyClient(discord.Client):
                     turnCount += 1
                     #await self.battleChannel.send("Primed")
                     await asyncio.sleep(2)
-                    if self.player1DataSocket.getData() == "a[0]":
-                        await self.battleChannel.send("***Darmander uses ???...***")                
-                        damage = 0
-                        description = ""
-                        damage = self.battleZone.pokemon2.attack(self.battleZone.pokemon1, 0)
-                        await self.battleChannel.send("***" + str(self.battleZone.pokemon1.name) + " takes " + str(damage) + " damage!...***")
-                        self.playerTurnNum = 1
-                        takenTurn = True
-                        self.player2DataSocket.setData(None)
+                    if self.player2DataSocket.getData() != None:
+                        if len(self.player2DataSocket.getData()) > 3 and self.player2DataSocket.getData()[0] == 'a':
+                            commandNum = self.player2DataSocket.getData()[2]
+                            await self.battleChannel.send(self.battleZone.pokemon2.abilities.abilityGroup[int(commandNum)].description)                
+                            damage = 0
+                            description = ""
+                            damage = self.battleZone.pokemon2.abilities.abilityGroup[0].dealDamage(self.battleZone.pokemon2)
+                            self.battleZone.pokemon1.hitpoints -= damage
+                            await self.battleChannel.send("***" + str(self.battleZone.pokemon1.name) + " takes " + str(damage) + " damage!...***")
+                            self.playerTurnNum = 1
+                            takenTurn = True
+                            self.player1DataSocket.setData(None)
+                            self.player2DataSocket.setData(None)
 
 
    
