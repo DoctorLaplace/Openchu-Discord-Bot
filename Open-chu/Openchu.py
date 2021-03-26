@@ -27,7 +27,25 @@ class ability():
 
 
     def dealDamage(self, pokemonAttacking):
-        return pokemonAttacking.strength*3
+        if (self.type == 0):
+            return pokemonAttacking.strength*3
+        if (self.type == 1):
+            return pokemonAttacking.dexterity*3
+        if (self.type == 2):
+            return pokemonAttacking.constitution*3
+        if (self.type == 3):
+            return pokemonAttacking.intelligence*3
+        if (self.type == 4):
+            return pokemonAttacking.wisdom*3
+        if (self.type == 5):
+            return pokemonAttacking.charisma*3
+
+
+
+
+
+
+
 
 
 
@@ -159,22 +177,35 @@ class MyClient(discord.Client):
     player2DataSocket = dataSocket(None)
 
 
-    rkick = ability("Round House Kick", 0, "The Pokemon used a round house kick!")
-    axekick = ability("Axe Kick", 0, "The Pokemon used a axe kick!")
-    dab = ability("Dab", 0, "The Pokemon drops mad disrepect on its opponent!")
+    rkick = ability("Round House Kick", 0, "***<A> kicks the sh\*t out of <B>!***")
+    axekick = ability("Axe Kick", 0, "***<A> gives <B> scoliosis with a graceful axe kick!***")
+    dab = ability("Dab", 5, "***<A> drops mad disrepect on <B>!***")
     shrekAbilities = abilitySet()
     shrekAbilities.abilityGroup = [rkick, axekick, dab]
-    pok1 = Pokemon(10, 10, 10, 10, 10, 10, 100, 100, "Shrek", None)
+    pok1 = Pokemon(35, 17, 40, 14, 22, 97, 500, 500, "Shrek", None)
     pok1.abilities = shrekAbilities
 
 
-    fThrower = ability("Flamethrower", 0, "The Pokemon unleashes a blast of fire!")
-    iFirework = ability("Illegal Firework", 0, "The Pokemon recklessly lights an illegal firework aimed at the opponent!")
-    hFive = ability("Overly Excited High-Five", 0, "The Pokemon gives the opponent a high five at mach 3!")
-    darAbilities = abilitySet()
-    darAbilities.abilityGroup = [fThrower, iFirework, hFive]
-    pok2 = Pokemon(10, 10, 10, 10, 10, 10, 100, 100, "Darmander", None)
-    pok2.abilities = darAbilities
+    #fthrower = ability("flamethrower", 4, "***<a> uses a world war 2 flamethrower on <b>!***")
+    #ifirework = ability("illegal firework", 1, "***<a> recklessly lights an illegal firework aimed at <b>!***")
+    #hfive = ability("overly excited high-five", 5, "***<a> gives <b> a high five at mach 3!***")
+    #darabilities = abilityset()
+    #darabilities.abilitygroup = [fthrower, ifirework, hfive]
+    #pok2 = pokemon(21, 24, 15, 12, 40, 27, 350, 350, "darmander", none)
+    #pok2.abilities = darabilities
+
+
+    bPeel = ability("Banana Peel", 1, "***<A> throws a slippery banana peel under <B>'s foot! <B> slips and goes flying!***")
+    mTouch = ability("Meme Touch", 5, "***<B> is hit by <A>, and for a moment sees the Memeiverse!***")
+    wNumberOne = ability("We Are Number One", 3, "***<A> is Number One!***")
+    vWink = ability("Villianous Wink", 4, "***<A> gives <B> a villianous wink!***")
+    robAbilities = abilitySet()
+    robAbilities.abilityGroup = [bPeel, mTouch, wNumberOne, vWink]
+    pok2 = Pokemon(8, 20, 18, 43, 34, 333, 400, 400, "Robbie Rotten", None)
+    pok2.abilities = robAbilities
+
+
+
 
 
     #pok2 = Pokemon(10, 10, 10, 10, 10, 10, 100, 100, "Darmander", None)
@@ -210,7 +241,14 @@ class MyClient(discord.Client):
             barStr += backBar
 
         await channel.send(">>> " + pokemon.getName() + ": " + healthStr + barStr +
-                           "\nMoves:\n" + str(pokemon.getMoveListStr()) + "")
+                           "\nMoves:\n" + str(pokemon.getMoveListStr()) + "" 
+                           #+ "Strength: " + str(pokemon.strength)
+                           #+ " Dexterity: " + str(pokemon.dexterity)
+                           #+ " Constitution: " + str(pokemon.constitution)
+                           #+ " Intelligence: " + str(pokemon.intelligence)
+                           #+ " Wisdom: " + str(pokemon.wisdom)
+                           #+ " Charisma: " + str(pokemon.charisma)
+                           )
 
 
     async def on_ready(self):
@@ -364,10 +402,15 @@ class MyClient(discord.Client):
                     if self.player1DataSocket.getData() != None:
                         if len(self.player1DataSocket.getData()) > 3 and self.player1DataSocket.getData()[0] == 'a':
                             commandNum = self.player1DataSocket.getData()[2]
-                            await self.battleChannel.send(self.battleZone.pokemon1.abilities.abilityGroup[int(commandNum)].description)                
+
+                            tempDesc = self.battleZone.pokemon1.abilities.abilityGroup[int(commandNum)].description
+                            tempDesc = tempDesc.replace("<A>", self.battleZone.pokemon1.name)
+                            tempDesc = tempDesc.replace("<B>", self.battleZone.pokemon2.name)
+
+                            await self.battleChannel.send(tempDesc)                
                             damage = 0
                             description = ""
-                            damage = self.battleZone.pokemon1.abilities.abilityGroup[0].dealDamage(self.battleZone.pokemon1)
+                            damage = self.battleZone.pokemon1.abilities.abilityGroup[int(commandNum)].dealDamage(self.battleZone.pokemon1)
                             self.battleZone.pokemon2.hitpoints -= damage
                             await self.battleChannel.send("***" + str(self.battleZone.pokemon2.name) + " takes " + str(damage) + " damage!...***")
                             self.playerTurnNum = 2
@@ -389,10 +432,15 @@ class MyClient(discord.Client):
                     if self.player2DataSocket.getData() != None:
                         if len(self.player2DataSocket.getData()) > 3 and self.player2DataSocket.getData()[0] == 'a':
                             commandNum = self.player2DataSocket.getData()[2]
-                            await self.battleChannel.send(self.battleZone.pokemon2.abilities.abilityGroup[int(commandNum)].description)                
+
+                            tempDesc = self.battleZone.pokemon2.abilities.abilityGroup[int(commandNum)].description
+                            tempDesc = tempDesc.replace("<A>", self.battleZone.pokemon2.name)
+                            tempDesc = tempDesc.replace("<B>", self.battleZone.pokemon1.name)
+
+                            await self.battleChannel.send(tempDesc)                
                             damage = 0
                             description = ""
-                            damage = self.battleZone.pokemon2.abilities.abilityGroup[0].dealDamage(self.battleZone.pokemon2)
+                            damage = self.battleZone.pokemon2.abilities.abilityGroup[int(commandNum)].dealDamage(self.battleZone.pokemon2)
                             self.battleZone.pokemon1.hitpoints -= damage
                             await self.battleChannel.send("***" + str(self.battleZone.pokemon1.name) + " takes " + str(damage) + " damage!...***")
                             self.playerTurnNum = 1
